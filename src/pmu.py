@@ -27,6 +27,7 @@ def recordHands(lines, mainPlayer):
         flop=""
         turn=""
         river=""
+        players=[]
         handPlayers={}
         
         # Loop until the line "#Game No : "
@@ -83,15 +84,15 @@ def recordHands(lines, mainPlayer):
                 logger.debug("maxPlayer : " + maxPlayer)
                 
                 # Get players name
-                #for i in range(0,int(QtyPlayer[0])):
-                #    n=inc_n(n, nbLines)
-                #    if n==nbLines : break
-                #    pattern = re.compile("seat ") # Construit la pattern recherché
-                #    match = pattern.search(lines[n]) # Recherche la pattern
-                #    playerName = re.split("\(",lines[n][match.end():])[0][3:-1]
-                #    playerName=re.sub("'", "\\'", playerName)
-                #    handPlayers[playerName]="" # Initialize the variable to catch the player hand
-                #    logger.debug("playerName : " + playerName)
+                for i in range(0,int(QtyPlayer[0])):
+                    n=inc_n(n, nbLines)
+                    if n==nbLines : break
+                    pattern = re.compile("seat ") # Construit la pattern recherché
+                    match = pattern.search(lines[n]) # Recherche la pattern
+                    playerName = re.split("\(",lines[n][match.end():])[0][3:-1]
+                    playerName=re.sub("'", "\\'", playerName)
+                    players.append(playerName)
+                    logger.debug("players[" + str(i) + "] : " + playerName)
                     
                 # skip lines until ** Dealing down cards **
                 inc_n(n, nbLines)
@@ -174,11 +175,11 @@ def recordHands(lines, mainPlayer):
                                                                 handPlayer=shows_line[show_pos+3] + shows_line[show_pos+4]
                                                                 handPlayers[handPlayerName]=handPlayer
                                                                 logger.debug("handPlayers[" + handPlayerName + "] : " + handPlayers[handPlayerName])
-                                                # if the match = #Game No or endfile
+                                                # match = #Game No or endfile
                                                 break
-                                    # if the match = #Game No or endfile
+                                    # match = #Game No or endfile
                                     break
-                        # if the match = #Game No or endfile
+                        # match = #Game No or endfile
                         break            
                                                     
                 # Call API to record the hand
@@ -194,6 +195,7 @@ def recordHands(lines, mainPlayer):
                     'flop':flop,
                     'turn':turn,
                     'river':river,
+                    'players': json.dumps(players,ensure_ascii=False),
                     'handPlayers':json.dumps(handPlayers,ensure_ascii=False)}
                 logger.debug("data : " + str(data))
             
