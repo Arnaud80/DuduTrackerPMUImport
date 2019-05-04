@@ -1,21 +1,19 @@
 #!/usr/local/bin/python3
 
-"""
-TODO :
-    Gérer les exeptions à l'ouverture des fichier (ex. .DS_Store) 
-"""
-
 import os
 from myLogger import logger
 from pmu import recordHands
-
-"""
-    Import config file
-"""
+import argparse
 import config
-PMULogFolder=config.PMULogFolder
-mainPlayer=config.mainPlayer
+from config import mainPlayer
 
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-PMULogFolder", default=config.PMULogFolder)
+args = parser.parse_args()
+
+
+PMULogFolder = args.PMULogFolder     
 
 logger.info("DuduTrackerPMUImport is started ...")
     

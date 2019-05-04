@@ -27,7 +27,7 @@ def recordHands(lines, mainPlayer):
         flop=""
         turn=""
         river=""
-        handPlayers={mainPlayer:""}
+        handPlayers={}
         
         # Loop until the line "#Game No : "
         pattern = re.compile("#Game No : ") # Searched pattern
@@ -83,15 +83,15 @@ def recordHands(lines, mainPlayer):
                 logger.debug("maxPlayer : " + maxPlayer)
                 
                 # Get players name
-                for i in range(0,int(QtyPlayer[0])):
-                    n=inc_n(n, nbLines)
-                    if n==nbLines : break
-                    pattern = re.compile("seat ") # Construit la pattern recherché
-                    match = pattern.search(lines[n]) # Recherche la pattern
-                    playerName = re.split("\(",lines[n][match.end():])[0][3:-1]
-                    playerName=re.sub("'", "\\'", playerName)
-                    handPlayers[playerName]="" # Initialize the variable to catch the player hand
-                    logger.debug("playerName : " + playerName)
+                #for i in range(0,int(QtyPlayer[0])):
+                #    n=inc_n(n, nbLines)
+                #    if n==nbLines : break
+                #    pattern = re.compile("seat ") # Construit la pattern recherché
+                #    match = pattern.search(lines[n]) # Recherche la pattern
+                #    playerName = re.split("\(",lines[n][match.end():])[0][3:-1]
+                #    playerName=re.sub("'", "\\'", playerName)
+                #    handPlayers[playerName]="" # Initialize the variable to catch the player hand
+                #    logger.debug("playerName : " + playerName)
                     
                 # skip lines until ** Dealing down cards **
                 inc_n(n, nbLines)
@@ -149,26 +149,36 @@ def recordHands(lines, mainPlayer):
                                                             if match[0]=="#Game No":
                                                                 break
                                                             
-                                                            if match[0]=="shows":
+                                                            if (match[0]=="shows") :
                                                                 shows_line=lines[n].split(" ")
-                                                                handPlayerName=shows_line[0]
+                                                                handPlayerName=shows_line[0];
+                                                                show_pos=1;
+                                                                while shows_line[show_pos]!="shows" :
+                                                                    handPlayerName=handPlayerName+" "+shows_line[show_pos]
+                                                                    show_pos+=1;
+                                                                    
                                                                 handPlayerName=re.sub("'", "\\'", handPlayerName)
-                                                                handPlayer=shows_line[3] + shows_line[4]
+                                                                handPlayer=shows_line[show_pos+2] + shows_line[show_pos+3]
                                                                 handPlayers[handPlayerName]=handPlayer
                                                                 logger.debug("handPlayers[" + handPlayerName + "] : " + handPlayers[handPlayerName])
                                                                 
                                                             if match[0]=="doesn't show" :
                                                                 shows_line=lines[n].split(" ")
-                                                                handPlayerName=shows_line[0]
+                                                                handPlayerName=shows_line[0];
+                                                                show_pos=1;
+                                                                while shows_line[show_pos]!="doesn't":
+                                                                    handPlayerName=handPlayerName+" "+shows_line[show_pos]
+                                                                    show_pos+=1;
+                                                                
                                                                 handPlayerName=re.sub("'", "\\'", handPlayerName)
-                                                                handPlayer=shows_line[4] + shows_line[5]
+                                                                handPlayer=shows_line[show_pos+3] + shows_line[show_pos+4]
                                                                 handPlayers[handPlayerName]=handPlayer
                                                                 logger.debug("handPlayers[" + handPlayerName + "] : " + handPlayers[handPlayerName])
-                                                # Todo : Clarify the action if the match = #Game No
+                                                # if the match = #Game No or endfile
                                                 break
-                                    # Todo : Clarify the action if the match = #Game No
+                                    # if the match = #Game No or endfile
                                     break
-                        # Todo : Clarify the action if the match = #Game No
+                        # if the match = #Game No or endfile
                         break            
                                                     
                 # Call API to record the hand
@@ -185,6 +195,7 @@ def recordHands(lines, mainPlayer):
                     'turn':turn,
                     'river':river,
                     'handPlayers':json.dumps(handPlayers,ensure_ascii=False)}
+                logger.debug("data : " + str(data))
             
                 result=requests.post(api_url, data)
                 obj=json.loads(result.content)
