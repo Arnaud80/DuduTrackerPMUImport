@@ -1,17 +1,11 @@
 #!/usr/local/bin/python3
-
-"""
-"""
-
 from time import strftime, localtime, sleep
 from pmu import recordHands
 import os
 from config import PMULogFolder, mainPlayer
 from myLogger import logger
 
-
 currentFolder=strftime("%Y%m%d", localtime())
-
 
 logger.warning("DuduTrackerPMULiveRecorder is started ...")
 logger.info("CurrentFolder : " + currentFolder)

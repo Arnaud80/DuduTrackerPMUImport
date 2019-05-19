@@ -1,3 +1,4 @@
 #!/usr/local/bin/python3
-PMULogFolder="Here your PMU log folder (eg. /Users/username/PMU Poker/HandHistory/playername"
+PMULogFolder="Here your PMU log folder" (eg. /Users/username/PMU Poker/HandHistory/playername)
 mainPlayer="Your player name"
+api_url="http://API_hostname:API_port/hands" (eg. http://192.168.1.22:8080/hands)
