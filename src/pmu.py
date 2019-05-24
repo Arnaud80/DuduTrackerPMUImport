@@ -29,9 +29,10 @@ def getWinners(winners, lines, n, nbLines):
         else:
             playerName = lines[n][0:match.start()-1]
             playerName = re.sub("'", "\\'", playerName)
-
             pattern = re.compile(r"side") # Construct the pattern
-            match = pattern.search(lines[n]) # Serach the pattern
+            lines[n]=lines[n].replace(",","")
+            match = pattern.search(lines[n]) # Search the pattern
+            
             match_amount = re.findall(r"(\d+(\.\d+)?)", lines[n]) # Search all numbers
             
             if match :
@@ -147,24 +148,37 @@ def recordHands(lines, mainPlayer):
                     logger.debug("players[" + str(i) + "] : " + playerName)
                 
                 # Get Small blind
-                n=inc_n(n, nbLines)
-                if n==nbLines : break
-                match = re.findall(r"(\d+(\.\d+)?)", lines[n]) # Construct the pattern
-                smallBlind = match[len(match)-1][0]
-                match = re.search(" posts",lines[n]) # Search the pattern
-                smallBlindPlayer = lines[n][0:match.start()]
-                logger.debug("smallBlind : " + smallBlind)
-                logger.debug("smallBlindPlayer : " + smallBlindPlayer)
+                # skip lines until small blind
+                while (n<nbLines):
+                    n=inc_n(n, nbLines)
+                    if n==nbLines : break
+                    pattern = re.compile(r"small blind|no Small Blind") # Construct the pattern
+                    match = pattern.search(lines[n]) # Search the pattern
+                    if match:
+                        if match[0]=="small blind" :
+                            match = re.findall(r"(\d+(\.\d+)?)", lines[n]) # Construct the pattern
+                            smallBlind = match[len(match)-1][0]
+                            match = re.search(" posts",lines[n]) # Search the pattern
+                            smallBlindPlayer = lines[n][0:match.start()]
+                            logger.debug("smallBlind : " + smallBlind)
+                            logger.debug("smallBlindPlayer : " + smallBlindPlayer)
+                    break
 
                 # Get Big blind
-                n=inc_n(n, nbLines)
-                if n==nbLines : break
-                match = re.findall(r"(\d+(\.\d+)?)", lines[n]) # Construct the pattern
-                bigBlind = match[len(match)-1][0]
-                match = re.search(" posts",lines[n]) # Search the pattern
-                bigBlindPlayer = lines[n][0:match.start()]
-                logger.debug("bigBlind : " + bigBlind)
-                logger.debug("bigBlindPlayer : " + bigBlindPlayer)
+                # skip lines until small blind
+                while (n<nbLines):
+                    n=inc_n(n, nbLines)
+                    if n==nbLines : break
+                    pattern = re.compile(r"big blind") # Construct the pattern
+                    match = pattern.search(lines[n]) # Search the pattern
+                    if match:
+                        match = re.findall(r"(\d+(\.\d+)?)", lines[n]) # Construct the pattern
+                        bigBlind = match[len(match)-1][0]
+                        match = re.search(" posts",lines[n]) # Search the pattern
+                        bigBlindPlayer = lines[n][0:match.start()]
+                        logger.debug("bigBlind : " + bigBlind)
+                        logger.debug("bigBlindPlayer : " + bigBlindPlayer)
+                        break
 
                 # skip lines until ** Dealing down cards **
                 inc_n(n, nbLines)
@@ -186,18 +200,22 @@ def recordHands(lines, mainPlayer):
                 while (n<nbLines):
                     n=inc_n(n, nbLines)
                     if n==nbLines : break
-                    pattern = re.compile(r"all-In|raises|calls|folds|checks|time|^\*\* Dealing Flop \*\*|^#Game No|does") # Construct the pattern
+                    #pattern = re.compile(r"all-In|raises|bets|calls|folds|Folds|checks|time|break|moved|disconnected|reconnected|Chat|^\*\* Dealing Flop \*\*|^#Game No|does") # Construct the pattern
+                    #pattern = re.compile(r"all-In|raises|bets|calls|folds|Folds|checks|^\*\* Dealing Flop \*\*|^#Game No|does") # Construct the pattern
+                    pattern = re.compile(r"^\*\* Dealing Flop \*\*|^#Game No|does") # Construct the pattern
                     match_action = pattern.search(lines[n]) # Search the pattern
-                    if match_action[0]=="** Dealing Flop **" or match_action[0]=="#Game No" or match_action[0]=="does":
+                    if match_action :
                         n=n-1
                         break
-                    else:
-                        pattern = re.compile("all-In|raises|calls|folds|checks|time") # Construct the pattern
-                        match_player = pattern.search(lines[n]) # Search the pattern
-                        playerName = lines[n][0:match_player.start()-1]
-                        playerName = re.sub("'", "\\'", playerName)
-                        if match_action[0]!='time':
-                            if match_action[0]!='folds' and match_action[0]!='checks':
+                    else :
+                        #pattern = re.compile("all-In|raises|bets|calls|folds|Folds|checks") # Construct the pattern
+                        pattern = re.compile("all-In|raises|bets|calls|folds|Folds|checks") # Construct the pattern
+                        match_action = pattern.search(lines[n]) # Search the pattern
+                        if match_action : #!='time' and match_action[0]!='break' and match_action[0]!='moved' and match_action[0]!='disconnected' and match_action[0]!='reconnected' and match_action[0]!='Chat':
+                            match_player = pattern.search(lines[n]) # Search the pattern
+                            playerName = lines[n][0:match_player.start()-1]
+                            playerName = re.sub("'", "\\'", playerName)
+                            if match_action[0]!='folds' and match_action[0]!='Folds' and match_action[0]!='checks':
                                 match_amount = re.findall(r"(\d+(\.\d+)?)", lines[n]) # Search numbers
                                 preflop_actions[playerName]={'action':match_action[0],'amount':match_amount[len(match_amount)-1][0]}
                             else:
@@ -223,18 +241,22 @@ def recordHands(lines, mainPlayer):
                             while (n<nbLines):
                                 n=inc_n(n, nbLines)
                                 if n==nbLines : break
-                                pattern = re.compile(r"all-In|raises|bets|calls|folds|checks|time|^\*\* Dealing Turn \*\*|shows|show|^#Game No|wins|does") # Construit la pattern recherché
+                                #pattern = re.compile(r"all-In|raises|bets|calls|folds|Folds|checks|time|break|moved|disconnected|reconnected|Chat|^\*\* Dealing Turn \*\*|shows|show|^#Game No|wins|does") # Construit la pattern recherché
+                                #pattern = re.compile(r"all-In|raises|bets|calls|folds|Folds|checks|^\*\* Dealing Turn \*\*|shows|show|^#Game No|wins|does") # Construit la pattern recherché
+                                pattern = re.compile(r"^\*\* Dealing Turn \*\*|^#Game No|does|show|shows|wins") # Construit la pattern recherché
                                 match_action = pattern.search(lines[n]) # Search the pattern
-                                if match_action[0]=="** Dealing Turn **" or match_action[0]=="#Game No" or match_action[0]=="does" or match_action[0]=="show" or match_action[0]=="shows" or match_action[0]=="wins":
+                                if match_action :
                                     n=n-1
                                     break
                                 else:
-                                    pattern = re.compile("all-In|raises|bets|calls|folds|checks|time") # Construct the pattern
-                                    match_player = pattern.search(lines[n]) # Search the pattern
-                                    playerName = lines[n][0:match_player.start()-1]
-                                    playerName = re.sub("'", "\\'", playerName)
-                                    if match_action[0]!='time':
-                                        if match_action[0]!='folds' and match_action[0]!='checks':
+                                    #pattern = re.compile("all-In|raises|bets|calls|folds|Folds|checks|time|break|moved|disconnected|reconnected|Chat") # Construct the pattern
+                                    pattern = re.compile("all-In|raises|bets|calls|folds|Folds|checks") # Construct the pattern
+                                    match_action = pattern.search(lines[n]) # Search the pattern
+                                    if match_action : #!='time' and match_action[0]!='break' and match_action[0]!='moved' and match_action[0]!='disconnected' and match_action[0]!='reconnected' and match_action[0]!='Chat':
+                                        match_player = pattern.search(lines[n]) # Search the pattern
+                                        playerName = lines[n][0:match_player.start()-1]
+                                        playerName = re.sub("'", "\\'", playerName)
+                                        if match_action[0]!='folds' and match_action[0]!='Folds' and match_action[0]!='checks':
                                             match_amount = re.findall(r"(\d+(\.\d+)?)", lines[n]) # Search numbers
                                             flop_actions[playerName]={'action':match_action[0],'amount':match_amount[len(match_amount)-1][0]}
                                         else:
@@ -257,18 +279,22 @@ def recordHands(lines, mainPlayer):
                                         while (n<nbLines):
                                             n=inc_n(n, nbLines)
                                             if n==nbLines : break
-                                            pattern = re.compile(r"all-In|raises|bets|calls|folds|checks|time|^\*\* Dealing River \*\*|^#Game No|does") # Construit la pattern recherché
+                                            #pattern = re.compile(r"all-In|raises|bets|calls|folds|Folds|checks|time|break|moved|disconnected|reconnected|Chat|^\*\* Dealing River \*\*|^#Game No|does") # Construit la pattern recherché
+                                            #pattern = re.compile(r"all-In|raises|bets|calls|folds|Folds|checks|^\*\* Dealing River \*\*|^#Game No|does") # Construit la pattern recherché
+                                            pattern = re.compile(r"^\*\* Dealing River \*\*|^#Game No|does") # Construit la pattern recherché
                                             match_action = pattern.search(lines[n]) # Recherche la pattern
-                                            if match_action[0]=="** Dealing River **" or match_action[0]=="#Game No" or match_action[0]=="does":
+                                            if match_action :
                                                 n=n-1
                                                 break
                                             else:
-                                                pattern = re.compile("all-In|raises|bets|calls|folds|checks|time") # Construct the pattern
-                                                match_player = pattern.search(lines[n]) # Construct the pattern
-                                                playerName = lines[n][0:match_player.start()-1]
-                                                playerName = re.sub("'", "\\'", playerName)
-                                                if match_action[0]!='time':
-                                                    if match_action[0]!='folds' and match_action[0]!='checks':
+                                                #pattern = re.compile("all-In|raises|bets|calls|folds|Folds|checks|time|break|moved|disconnected|reconnected|Chat") # Construct the pattern
+                                                pattern = re.compile("all-In|raises|bets|calls|folds|Folds|checks") # Construct the pattern
+                                                match_action = pattern.search(lines[n]) # Search the pattern
+                                                if match_action : #!='time' and match_action[0]!='break' and match_action[0]!='moved' and match_action[0]!='disconnected' and match_action[0]!='reconnected' and match_action[0]!='Chat':
+                                                    match_player = pattern.search(lines[n]) # Construct the pattern
+                                                    playerName = lines[n][0:match_player.start()-1]
+                                                    playerName = re.sub("'", "\\'", playerName)
+                                                    if match_action[0]!='folds' and match_action[0]!='Folds' and match_action[0]!='checks':
                                                         match_amount = re.findall(r"(\d+(\.\d+)?)", lines[n]) # Construct the pattern
                                                         turn_actions[playerName]={'action':match_action[0],'amount':match_amount[len(match_amount)-1][0]}
                                                     else:
@@ -292,18 +318,22 @@ def recordHands(lines, mainPlayer):
                                                     while (n<nbLines):
                                                         n=inc_n(n, nbLines)
                                                         if n==nbLines : break
-                                                        pattern = re.compile(r"all-In|raises|bets|calls|folds|checks|time|shows|does|^#Game No") # Construct the pattern
+                                                        #pattern = re.compile(r"all-In|raises|bets|calls|folds|Folds|checks|time|break|moved|disconnected|reconnected|Chat|shows|does|^#Game No") # Construct the pattern
+                                                        #pattern = re.compile(r"all-In|raises|bets|calls|folds|Folds|checks|shows|does|^#Game No") # Construct the pattern
+                                                        pattern = re.compile(r"shows|does|^#Game No") # Construct the pattern
                                                         match_action = pattern.search(lines[n]) # Search the pattern
-                                                        if match_action[0]=="shows" or match_action[0]=="does" or match_action[0]=="#Game No" :
+                                                        if match_action :
                                                             n=n-1
                                                             break
                                                         else:
-                                                            pattern = re.compile("all-In|raises|bets|calls|folds|checks|time") # Construct the pattern
-                                                            match_player = pattern.search(lines[n]) # Search the pattern
-                                                            playerName = lines[n][0:match_player.start()-1]
-                                                            playerName = re.sub("'", "\\'", playerName)
-                                                            if match_action[0]!='time':
-                                                                if match_action[0]!='folds' and match_action[0]!='checks':
+                                                            #pattern = re.compile("all-In|raises|bets|calls|folds|Folds|checks|time|break|moved|disconnected|reconnected|Chat") # Construct the pattern
+                                                            pattern = re.compile("all-In|raises|bets|calls|folds|Folds|checks") # Construct the pattern
+                                                            match_action = pattern.search(lines[n]) # Search the pattern
+                                                            if match_action : #!='time' and match_action[0]!='break' and match_action[0]!='moved' and match_action[0]!='disconnected' and match_action[0]!='reconnected' and match_action[0]!='Chat':
+                                                                match_player = pattern.search(lines[n]) # Search the pattern
+                                                                playerName = lines[n][0:match_player.start()-1]
+                                                                playerName = re.sub("'", "\\'", playerName)
+                                                                if match_action[0]!='folds' and match_action[0]!='Folds' and match_action[0]!='checks':
                                                                     match_amount = re.findall(r"(\d+(\.\d+)?)", lines[n]) # Construct the pattern
                                                                     river_actions[playerName]={'action':match_action[0],'amount':match_amount[len(match_amount)-1][0]}
                                                                 else:
@@ -387,11 +417,11 @@ def recordHands(lines, mainPlayer):
                     'smallBlind':smallBlind,
                     'bigBlindPlayer':bigBlindPlayer,
                     'bigBlind':bigBlind,
-                    'preflop_actions':preflop_actions,
-                    'flop_actions':flop_actions,
-                    'turn_actions':turn_actions,
-                    'river_actions':river_actions,
-                    'winners':winners}
+                    'preflop_actions':json.dumps(preflop_actions,ensure_ascii=False),
+                    'flop_actions':json.dumps(flop_actions,ensure_ascii=False),
+                    'turn_actions':json.dumps(turn_actions,ensure_ascii=False),
+                    'river_actions':json.dumps(river_actions,ensure_ascii=False),
+                    'winners':json.dumps(winners,ensure_ascii=False)}
                 logger.debug("data : " + str(data))
             
                 result=requests.post(api_url, data)
