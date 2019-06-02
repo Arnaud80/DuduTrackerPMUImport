@@ -52,10 +52,10 @@ def getWinners(winners, lines, n, nbLines):
     res["winners"]=winners
     return res
 
-def recordHands(lines, mainPlayer):
+def recordHands(lines, mainPlayer, tableName):
     nbLines=len(lines)-1
     if nbLines<0 :
-        logger.debug("wait for new lines ...")
+        logger.debug(tableName + " : wait for new lines ...")
     else :
         logger.debug("nbLines : " + str(nbLines))
     
@@ -197,31 +197,43 @@ def recordHands(lines, mainPlayer):
                 logger.debug("handPlayers[" + mainPlayer + "] : " + handPlayers[mainPlayer])    
 
                 # Get preflop actions
+                actionNum=0
+                bet=1
                 while (n<nbLines):
                     n=inc_n(n, nbLines)
                     if n==nbLines : break
-                    #pattern = re.compile(r"all-In|raises|bets|calls|folds|Folds|checks|time|break|moved|disconnected|reconnected|Chat|^\*\* Dealing Flop \*\*|^#Game No|does") # Construct the pattern
-                    #pattern = re.compile(r"all-In|raises|bets|calls|folds|Folds|checks|^\*\* Dealing Flop \*\*|^#Game No|does") # Construct the pattern
                     pattern = re.compile(r"^\*\* Dealing Flop \*\*|^#Game No|does") # Construct the pattern
                     match_action = pattern.search(lines[n]) # Search the pattern
                     if match_action :
                         n=n-1
                         break
                     else :
-                        #pattern = re.compile("all-In|raises|bets|calls|folds|Folds|checks") # Construct the pattern
-                        pattern = re.compile("all-In|raises|bets|calls|folds|Folds|checks") # Construct the pattern
+                        pattern = re.compile("is all-In|raises|bets|calls|folds|Folds|checks") # Construct the pattern
                         match_action = pattern.search(lines[n]) # Search the pattern
-                        if match_action : #!='time' and match_action[0]!='break' and match_action[0]!='moved' and match_action[0]!='disconnected' and match_action[0]!='reconnected' and match_action[0]!='Chat':
+                        if match_action : 
                             match_player = pattern.search(lines[n]) # Search the pattern
                             playerName = lines[n][0:match_player.start()-1]
                             playerName = re.sub("'", "\\'", playerName)
                             if match_action[0]!='folds' and match_action[0]!='Folds' and match_action[0]!='checks':
                                 match_amount = re.findall(r"(\d+(\.\d+)?)", lines[n]) # Search numbers
-                                preflop_actions[playerName]={'action':match_action[0],'amount':match_amount[len(match_amount)-1][0]}
+                                if match_action[0]=='is all-In':
+                                    preflop_actions[actionNum]={'playerName':playerName,'action':'all-In','amount':match_amount[len(match_amount)-1][0]}
+                                else :
+                                    if match_action[0]=='raises' or match_action[0]=='bets':
+                                        bet=bet+1
+                                        if bet>2:
+                                            preflop_actions[actionNum]={'playerName':playerName,'action':str(bet)+'-bets','amount':match_amount[len(match_amount)-1][0]}
+                                        else:
+                                            preflop_actions[actionNum]={'playerName':playerName,'action':match_action[0],'amount':match_amount[len(match_amount)-1][0]}
+                                    else :
+                                        preflop_actions[actionNum]={'playerName':playerName,'action':match_action[0],'amount':match_amount[len(match_amount)-1][0]}
+                                
                             else:
-                                preflop_actions[playerName]={'action':match_action[0],'amount':'0'}
-                            logger.debug("preflop_actions[" + playerName + "]['action'] : " + preflop_actions[playerName]['action'])
-                            logger.debug("preflop_actions[" + playerName + "]['amount'] : " + preflop_actions[playerName]['amount'])
+                                preflop_actions[actionNum]={'playerName':playerName,'action':match_action[0],'amount':'0'}
+                            logger.debug("preflop_actions[" + str(actionNum) + "]['playerName'] : " + preflop_actions[actionNum]['playerName'])
+                            logger.debug("preflop_actions[" + str(actionNum) + "]['action'] : " + preflop_actions[actionNum]['action'])
+                            logger.debug("preflop_actions[" + str(actionNum) + "]['amount'] : " + preflop_actions[actionNum]['amount'])
+                            actionNum=actionNum+1
                 
                 # Skip lines until ** Dealing Flop ** or #Game No
                 while (n<nbLines):
@@ -238,36 +250,46 @@ def recordHands(lines, mainPlayer):
                             logger.debug("flop : " + flop)
 
                             # Get flop actions
+                            actionNum=0
+                            bet=1
                             while (n<nbLines):
                                 n=inc_n(n, nbLines)
                                 if n==nbLines : break
-                                #pattern = re.compile(r"all-In|raises|bets|calls|folds|Folds|checks|time|break|moved|disconnected|reconnected|Chat|^\*\* Dealing Turn \*\*|shows|show|^#Game No|wins|does") # Construit la pattern recherché
-                                #pattern = re.compile(r"all-In|raises|bets|calls|folds|Folds|checks|^\*\* Dealing Turn \*\*|shows|show|^#Game No|wins|does") # Construit la pattern recherché
                                 pattern = re.compile(r"^\*\* Dealing Turn \*\*|^#Game No|does|show|shows|wins") # Construit la pattern recherché
                                 match_action = pattern.search(lines[n]) # Search the pattern
                                 if match_action :
                                     n=n-1
                                     break
                                 else:
-                                    #pattern = re.compile("all-In|raises|bets|calls|folds|Folds|checks|time|break|moved|disconnected|reconnected|Chat") # Construct the pattern
-                                    pattern = re.compile("all-In|raises|bets|calls|folds|Folds|checks") # Construct the pattern
+                                    pattern = re.compile("is all-In|raises|bets|calls|folds|Folds|checks") # Construct the pattern
                                     match_action = pattern.search(lines[n]) # Search the pattern
-                                    if match_action : #!='time' and match_action[0]!='break' and match_action[0]!='moved' and match_action[0]!='disconnected' and match_action[0]!='reconnected' and match_action[0]!='Chat':
+                                    if match_action :
                                         match_player = pattern.search(lines[n]) # Search the pattern
                                         playerName = lines[n][0:match_player.start()-1]
                                         playerName = re.sub("'", "\\'", playerName)
                                         if match_action[0]!='folds' and match_action[0]!='Folds' and match_action[0]!='checks':
                                             match_amount = re.findall(r"(\d+(\.\d+)?)", lines[n]) # Search numbers
-                                            flop_actions[playerName]={'action':match_action[0],'amount':match_amount[len(match_amount)-1][0]}
+                                            if match_action[0]=='is all-In':
+                                                flop_actions[actionNum]={'playerName':playerName,'action':'all-In','amount':match_amount[len(match_amount)-1][0]}
+                                            else :
+                                                if match_action[0]=='raises' or match_action[0]=='bets':
+                                                    bet=bet+1
+                                                    if bet>2:
+                                                        flop_actions[actionNum]={'playerName':playerName,'action':str(bet)+'-bets','amount':match_amount[len(match_amount)-1][0]}
+                                                    else:
+                                                        flop_actions[actionNum]={'playerName':playerName,'action':match_action[0],'amount':match_amount[len(match_amount)-1][0]}
+                                                else:
+                                                    flop_actions[actionNum]={'playerName':playerName,'action':match_action[0],'amount':match_amount[len(match_amount)-1][0]}
                                         else:
-                                            flop_actions[playerName]={'action':match_action[0],'amount':'0'}
-                                        logger.debug("flop_actions[" + playerName + "]['action'] : " + flop_actions[playerName]['action'])
-                                        logger.debug("flop_actions[" + playerName + "]['amount'] : " + flop_actions[playerName]['amount'])
+                                            flop_actions[actionNum]={'playerName':playerName,'action':match_action[0],'amount':'0'}
+                                        logger.debug("flop_actions[" + str(actionNum) + "]['playerName'] : " + flop_actions[actionNum]['playerName'])
+                                        logger.debug("flop_actions[" + str(actionNum) + "]['action'] : " + flop_actions[actionNum]['action'])
+                                        logger.debug("flop_actions[" + str(actionNum) + "]['amount'] : " + flop_actions[actionNum]['amount'])
+                                        actionNum=actionNum+1
                             
                             # Skip lines until ** Dealing Turn ** or #Game No
                             while (n<nbLines):
                                 n=inc_n(n, nbLines)
-                                #if n==nbLines : break # Todo : Check why this line is commented
                                 pattern = re.compile(r"^\*\* Dealing Turn \*\*|shows|show|^#Game No|wins")
                                 match = pattern.search(lines[n]) # Search the pattern
                                 if match:
@@ -276,32 +298,42 @@ def recordHands(lines, mainPlayer):
                                         logger.debug("turn : " + turn)
 
                                         # Get Turn actions
+                                        actionNum=0
+                                        bet=1
                                         while (n<nbLines):
                                             n=inc_n(n, nbLines)
                                             if n==nbLines : break
-                                            #pattern = re.compile(r"all-In|raises|bets|calls|folds|Folds|checks|time|break|moved|disconnected|reconnected|Chat|^\*\* Dealing River \*\*|^#Game No|does") # Construit la pattern recherché
-                                            #pattern = re.compile(r"all-In|raises|bets|calls|folds|Folds|checks|^\*\* Dealing River \*\*|^#Game No|does") # Construit la pattern recherché
                                             pattern = re.compile(r"^\*\* Dealing River \*\*|^#Game No|does") # Construit la pattern recherché
                                             match_action = pattern.search(lines[n]) # Recherche la pattern
                                             if match_action :
                                                 n=n-1
                                                 break
                                             else:
-                                                #pattern = re.compile("all-In|raises|bets|calls|folds|Folds|checks|time|break|moved|disconnected|reconnected|Chat") # Construct the pattern
-                                                pattern = re.compile("all-In|raises|bets|calls|folds|Folds|checks") # Construct the pattern
+                                                pattern = re.compile("is all-In|raises|bets|calls|folds|Folds|checks") # Construct the pattern
                                                 match_action = pattern.search(lines[n]) # Search the pattern
-                                                if match_action : #!='time' and match_action[0]!='break' and match_action[0]!='moved' and match_action[0]!='disconnected' and match_action[0]!='reconnected' and match_action[0]!='Chat':
+                                                if match_action : 
                                                     match_player = pattern.search(lines[n]) # Construct the pattern
                                                     playerName = lines[n][0:match_player.start()-1]
                                                     playerName = re.sub("'", "\\'", playerName)
                                                     if match_action[0]!='folds' and match_action[0]!='Folds' and match_action[0]!='checks':
                                                         match_amount = re.findall(r"(\d+(\.\d+)?)", lines[n]) # Construct the pattern
-                                                        turn_actions[playerName]={'action':match_action[0],'amount':match_amount[len(match_amount)-1][0]}
+                                                        if match_action[0]=='is all-In':
+                                                            turn_actions[actionNum]={'playerName':playerName,'action':'all-In','amount':match_amount[len(match_amount)-1][0]}
+                                                        else :
+                                                            if match_action[0]=='raises' or match_action[0]=='bets':
+                                                                bet=bet+1
+                                                                if bet>2:
+                                                                    turn_actions[actionNum]={'playerName':playerName,'action':str(bet)+'-bets','amount':match_amount[len(match_amount)-1][0]}
+                                                                else:
+                                                                    turn_actions[actionNum]={'playerName':playerName,'action':match_action[0],'amount':match_amount[len(match_amount)-1][0]}
+                                                            else:
+                                                                turn_actions[actionNum]={'playerName':playerName,'action':match_action[0],'amount':match_amount[len(match_amount)-1][0]}
                                                     else:
-                                                        turn_actions[playerName]={'action':match_action[0],'amount':'0'}
-                                                    logger.debug("turn_actions[" + playerName + "]['action'] : " + turn_actions[playerName]['action'])
-                                                    logger.debug("turn_actions[" + playerName + "]['amount'] : " + turn_actions[playerName]['amount'])
-                                        
+                                                        turn_actions[actionNum]={'playerName':playerName,'action':match_action[0],'amount':'0'}
+                                                    logger.debug("turn_actions[" + str(actionNum) + "]['playerName'] : " + turn_actions[actionNum]['playerName'])
+                                                    logger.debug("turn_actions[" + str(actionNum) + "]['action'] : " + turn_actions[actionNum]['action'])
+                                                    logger.debug("turn_actions[" + str(actionNum) + "]['amount'] : " + turn_actions[actionNum]['amount'])
+                                                    actionNum=actionNum+1
                                         
                                         # skip lines until ** Dealing River ** or #Game No
                                         while (n<nbLines):
@@ -315,33 +347,42 @@ def recordHands(lines, mainPlayer):
                                                     logger.debug("river : " + river)
 
                                                     # Get River actions
+                                                    actionNum=0
+                                                    bet=1
                                                     while (n<nbLines):
                                                         n=inc_n(n, nbLines)
                                                         if n==nbLines : break
-                                                        #pattern = re.compile(r"all-In|raises|bets|calls|folds|Folds|checks|time|break|moved|disconnected|reconnected|Chat|shows|does|^#Game No") # Construct the pattern
-                                                        #pattern = re.compile(r"all-In|raises|bets|calls|folds|Folds|checks|shows|does|^#Game No") # Construct the pattern
                                                         pattern = re.compile(r"shows|does|^#Game No") # Construct the pattern
                                                         match_action = pattern.search(lines[n]) # Search the pattern
                                                         if match_action :
                                                             n=n-1
                                                             break
                                                         else:
-                                                            #pattern = re.compile("all-In|raises|bets|calls|folds|Folds|checks|time|break|moved|disconnected|reconnected|Chat") # Construct the pattern
-                                                            pattern = re.compile("all-In|raises|bets|calls|folds|Folds|checks") # Construct the pattern
+                                                            pattern = re.compile("is all-In|raises|bets|calls|folds|Folds|checks") # Construct the pattern
                                                             match_action = pattern.search(lines[n]) # Search the pattern
-                                                            if match_action : #!='time' and match_action[0]!='break' and match_action[0]!='moved' and match_action[0]!='disconnected' and match_action[0]!='reconnected' and match_action[0]!='Chat':
+                                                            if match_action : 
                                                                 match_player = pattern.search(lines[n]) # Search the pattern
                                                                 playerName = lines[n][0:match_player.start()-1]
                                                                 playerName = re.sub("'", "\\'", playerName)
                                                                 if match_action[0]!='folds' and match_action[0]!='Folds' and match_action[0]!='checks':
                                                                     match_amount = re.findall(r"(\d+(\.\d+)?)", lines[n]) # Construct the pattern
-                                                                    river_actions[playerName]={'action':match_action[0],'amount':match_amount[len(match_amount)-1][0]}
+                                                                    if match_action[0]=='is all-In':
+                                                                        river_actions[actionNum]={'playerName':playerName,'action':'all-In','amount':match_amount[len(match_amount)-1][0]}
+                                                                    else :
+                                                                        if match_action[0]=='raises' or match_action[0]=='bets':
+                                                                            bet=bet+1
+                                                                            if bet>2:
+                                                                                river_actions[actionNum]={'playerName':playerName,'action':str(bet)+'-bets','amount':match_amount[len(match_amount)-1][0]}
+                                                                            else:
+                                                                                river_actions[actionNum]={'playerName':playerName,'action':match_action[0],'amount':match_amount[len(match_amount)-1][0]}
+                                                                        else:
+                                                                            river_actions[actionNum]={'playerName':playerName,'action':match_action[0],'amount':match_amount[len(match_amount)-1][0]}
                                                                 else:
-                                                                    river_actions[playerName]={'action':match_action[0],'amount':'0'}
-                                                                logger.debug("river_actions[" + playerName + "]['action'] : " + river_actions[playerName]['action'])
-                                                                logger.debug("river_actions[" + playerName + "]['amount'] : " + river_actions[playerName]['amount'])
-                                                    
-                                                # match = #Game No or endfile
+                                                                    river_actions[actionNum]={'playerName':playerName,'action':match_action[0],'amount':'0'}
+                                                                logger.debug("river_actions[" + str(actionNum) + "]['playerName'] : " + river_actions[actionNum]['playerName'])
+                                                                logger.debug("river_actions[" + str(actionNum) + "]['action'] : " + river_actions[actionNum]['action'])
+                                                                logger.debug("river_actions[" + str(actionNum) + "]['amount'] : " + river_actions[actionNum]['amount'])       
+                                                                actionNum=actionNum+1
                                                 else:
                                                     # n-1 to begin the next while loop on the good line
                                                     n=n-1

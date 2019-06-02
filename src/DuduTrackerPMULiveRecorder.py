@@ -4,6 +4,7 @@ from pmu import recordHands
 import os
 from config import PMULogFolder, mainPlayer
 from myLogger import logger
+from multiprocessing import Process
 
 currentFolder=strftime("%Y%m%d", localtime())
 
@@ -19,19 +20,30 @@ def readLines(file, pos):
     sleep(1)
     return(lines, pos)
     
+
+def parseFile(PMULogFile):
+    pos=0
+    while True:
+        result = readLines(PMULogFile, pos)
+        lines=result[0]
+        pos=result[1]
+        
+        recordHands(lines, mainPlayer, PMULogFile)
+
 # Read PMU Log files
 # Boucle sur les files du dossier de Log PMU du jour
-# r=root, d=directories, f = files
-for r, d, f in os.walk(PMULogFolder + "/" + currentFolder):
-    for file in f:
-        PMULogFile=os.path.join(r, file)
-        logLines=[]
-        pos=0
-        logger.warning("Import of " + PMULogFile)
-                
-        while True:
-            result = readLines(PMULogFile, pos)
-            lines=result[0]
-            pos=result[1]
-            
-            recordHands(lines, mainPlayer)
+r=PMULogFolder + "/" + currentFolder
+TargetFileList=list()
+
+while True:
+    fileList=os.listdir(r)
+    for file in fileList:
+        if file not in TargetFileList:
+            TargetFileList.append(file)
+            PMULogFile=os.path.join(r, file)
+            logger.warning("Import of " + PMULogFile)
+                    
+            if __name__ == '__main__':
+                p = Process(target=parseFile, args=(PMULogFile,))
+                p.start()
+    sleep(3)
